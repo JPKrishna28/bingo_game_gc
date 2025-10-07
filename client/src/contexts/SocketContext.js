@@ -11,7 +11,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     // Determine the server URL based on environment
     const serverUrl = process.env.NODE_ENV === 'production'
-      ? window.location.origin // Use the same URL in production
+      ? process.env.REACT_APP_API_URL || 'https://your-backend-server-url.com' // Use environment variable or fallback
       : 'http://localhost:5000'; // Use localhost in development
     
     // Create socket connection
