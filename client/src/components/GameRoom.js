@@ -17,7 +17,7 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
       });
       setMarkedNumbers(initialMarked);
     }
-  }, [roomData?.drawnNumbers]);
+  }, [roomData]); // Including the full roomData as a dependency
   
   const handleCellClick = (number) => {
     // Toggle the mark status

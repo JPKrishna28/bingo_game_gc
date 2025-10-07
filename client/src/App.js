@@ -7,7 +7,8 @@ import './App.css';
 
 function App() {
   const [username, setUsername] = useState('');
-  const [roomCode, setRoomCode] = useState('');
+  // roomCode is used when joining rooms and for reconnection
+  const [roomCode, setRoomCode] = useState(''); // eslint-disable-line no-unused-vars
   const [isRegistered, setIsRegistered] = useState(false);
   const [isInRoom, setIsInRoom] = useState(false);
   const [roomData, setRoomData] = useState(null);
