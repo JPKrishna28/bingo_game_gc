@@ -11,7 +11,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     // Determine the server URL based on environment
     const serverUrl = process.env.NODE_ENV === 'production'
-      ? process.env.REACT_APP_API_URL || window.location.origin // Try environment variable first, then origin
+      ? process.env.REACT_APP_API_URL || 'https://bingo-game-gc.onrender.com' // Use env var with fallback
       : 'http://localhost:5000'; // Use localhost in development
     
     console.log('Connecting to server at:', serverUrl);
