@@ -10,26 +10,32 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins (you can restrict this to your frontend URL)
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 app.use(express.json());
 
 // Create HTTP server and Socket.io instance
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? false : ["http://localhost:3000"],
-    methods: ["GET", "POST"]
+    origin: '*', // Allow all origins (you can restrict this to your frontend URL)
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
-  });
-}
+// Basic route for checking if server is running
+app.get('/', (req, res) => {
+  res.json({ message: 'Bingo Game Server is running' });
+});
+
+// Health check route for deployment services
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 // Socket.IO connection handler
 io.on('connection', (socket) => {
@@ -317,7 +323,7 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
 
