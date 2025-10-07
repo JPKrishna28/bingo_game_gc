@@ -43,7 +43,9 @@ function App() {
     
     // Handle game start
     socket.on('game_started', ({ currentTurn, currentTurnUsername }) => {
-      console.log('Game started!', 'First turn:', currentTurnUsername);
+      console.log('Game started!', 'First turn:', currentTurnUsername, 'currentTurn ID:', currentTurn);
+      console.log('My socket ID:', socket.id, 'Is my turn?', currentTurn === socket.id);
+      
       setRoomData(prev => ({ 
         ...prev, 
         gameInProgress: true,
@@ -73,6 +75,28 @@ function App() {
         showNotification(`Number ${number} drawn. It's your turn now!`, 'success');
       } else {
         showNotification(`Number ${number} drawn. ${nextTurnUsername}'s turn`, 'info');
+      }
+    });
+    
+    // Handle number marking from other players
+    socket.on('number_marked', ({ playerName, number, isMarked }) => {
+      console.log(`${playerName} ${isMarked ? 'marked' : 'unmarked'} number ${number}`);
+      
+      // Update the shared marked numbers in roomData
+      setRoomData(prev => {
+        const updatedSharedMarks = {
+          ...(prev.sharedMarkedNumbers || {}),
+          [number]: isMarked
+        };
+        
+        return {
+          ...prev,
+          sharedMarkedNumbers: updatedSharedMarks
+        };
+      });
+      
+      if (isMarked) {
+        showNotification(`${playerName} marked number ${number}`, 'info');
       }
     });
     
@@ -196,9 +220,34 @@ function App() {
   };
   
   const handleDrawNumber = () => {
+    if (!socket) {
+      console.error('Socket not available');
+      showNotification('Connection issue. Please refresh the page.', 'error');
+      return;
+    }
+    
+    console.log('Drawing number...');
+    socket.emit('draw_number');
+  };
+  
+  const handleMarkNumber = (number, isMarked) => {
     if (!socket) return;
     
-    socket.emit('draw_number');
+    // Send the mark to the server
+    socket.emit('mark_number', { number, isMarked });
+    
+    // Update local state
+    setRoomData(prev => {
+      const updatedSharedMarks = {
+        ...(prev.sharedMarkedNumbers || {}),
+        [number]: isMarked
+      };
+      
+      return {
+        ...prev,
+        sharedMarkedNumbers: updatedSharedMarks
+      };
+    });
   };
   
   const handleLeaveRoom = () => {
@@ -237,6 +286,7 @@ function App() {
           onStartGame={handleStartGame}
           onBingoClaim={handleBingoClaim}
           onDrawNumber={handleDrawNumber}
+          onMarkNumber={handleMarkNumber}
           onLeaveRoom={handleLeaveRoom}
         />
       )}

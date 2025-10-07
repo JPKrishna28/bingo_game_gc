@@ -4,7 +4,7 @@ import DrawnNumbers from './DrawnNumbers';
 import Leaderboard from './Leaderboard';
 import { useSocket } from '../contexts/SocketContext';
 
-const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber, onLeaveRoom }) => {
+const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber, onMarkNumber, onLeaveRoom }) => {
   const [markedNumbers, setMarkedNumbers] = useState({});
   const { socket } = useSocket();
   
@@ -20,11 +20,16 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
   }, [roomData]); // Including the full roomData as a dependency
   
   const handleCellClick = (number) => {
-    // Toggle the mark status
+    // Toggle the mark status locally
+    const newMarkedState = !markedNumbers[number];
+    
     setMarkedNumbers(prev => ({
       ...prev,
-      [number]: !prev[number]
+      [number]: newMarkedState
     }));
+    
+    // Broadcast the mark to other players
+    onMarkNumber(number, newMarkedState);
   };
   
   // Check if the current player is the host
@@ -40,18 +45,17 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
     <div className="game-room">
       <div className="room-info">
         <div className="room-code">Room Code: {roomData.code || roomData.roomCode}</div>
-        <p>
-          Players: {roomData.currentPlayers} / {roomData.maxPlayers}
-          {isHost && !roomData.gameInProgress && (
-            <span> (You are the host)</span>
-          )}
-        </p>
+        <div className="player-count">
+          <span className="player-count-label">Players:</span> 
+          <span className="player-count-value">{roomData.currentPlayers} / {roomData.maxPlayers}</span>
+        </div>
         
         <ul className="player-list">
           {roomData.players && roomData.players.map((player) => (
             <li key={player.id} className="player-item">
-              {player.username} {player.isHost ? '(Host)' : ''}
-              {player.username === username ? ' (You)' : ''}
+              {player.username}
+              {player.isHost && <span className="host-tag">Host</span>}
+              {player.username === username && <span className="you-tag">You</span>}
             </li>
           ))}
         </ul>
@@ -59,14 +63,14 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
         <div className="room-actions">
           {isHost && !roomData.gameInProgress && (
             <button 
-              className="btn btn-success" 
+              className="btn-start" 
               onClick={onStartGame}
               disabled={roomData.currentPlayers < 2}
             >
               Start Game
             </button>
           )}
-          <button className="btn btn-secondary" onClick={onLeaveRoom}>
+          <button className="btn-leave" onClick={onLeaveRoom}>
             Leave Room
           </button>
         </div>
@@ -80,9 +84,8 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
               <div className="your-turn">
                 <h3>It's your turn to draw a number!</h3>
                 <button 
-                  className="btn btn-primary draw-button" 
+                  className="draw-button" 
                   onClick={onDrawNumber}
-                  disabled={!roomData.remainingNumbers || roomData.remainingNumbers.length === 0}
                 >
                   Draw Number
                 </button>
@@ -104,7 +107,8 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
           <div className="bingo-card-container">
             <BingoCard 
               board={roomData.board} 
-              markedNumbers={markedNumbers} 
+              markedNumbers={markedNumbers}
+              sharedMarkedNumbers={roomData.sharedMarkedNumbers} 
               onCellClick={handleCellClick} 
             />
             
@@ -133,7 +137,7 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
       {!roomData.gameInProgress && roomData.players && roomData.players.length >= 2 && isHost && (
         <div className="start-game-container">
           <p>Waiting for you to start the game...</p>
-          <button className="btn btn-success" onClick={onStartGame}>
+          <button className="btn-start" onClick={onStartGame}>
             Start Game
           </button>
         </div>
@@ -149,6 +153,7 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber,
         <div className="waiting-container">
           <p>Waiting for more players to join...</p>
           <p>Share the room code with your friends!</p>
+          <div className="room-code-display">{roomData.code || roomData.roomCode}</div>
         </div>
       )}
     </div>

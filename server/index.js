@@ -166,8 +166,10 @@ io.on('connection', (socket) => {
       // Draw the next number
       const result = roomState.drawNextNumber(socket.id);
       
-      if (result.error) {
-        socket.emit('error', { message: result.error });
+      if (!result || result.error) {
+        const errorMsg = result ? result.error : 'Unknown error while drawing number';
+        console.error(`Draw number error: ${errorMsg}`);
+        socket.emit('error', { message: errorMsg });
         return;
       }
       
@@ -183,6 +185,26 @@ io.on('connection', (socket) => {
     } catch (error) {
       socket.emit('error', { message: error.message });
     }
+  });
+  
+  // Handle number marking
+  socket.on('mark_number', ({ number, isMarked }) => {
+    const roomCode = userData.roomCode;
+    
+    if (!roomCode) {
+      socket.emit('error', { message: 'You are not in a room' });
+      return;
+    }
+    
+    // Broadcast the marking to all other players in the room
+    socket.to(roomCode).emit('number_marked', { 
+      playerId: socket.id,
+      playerName: userData.username,
+      number, 
+      isMarked 
+    });
+    
+    console.log(`Player ${userData.username} ${isMarked ? 'marked' : 'unmarked'} number ${number} in room ${roomCode}`);
   });
   
   // Process bingo claims

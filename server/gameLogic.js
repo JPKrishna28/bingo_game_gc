@@ -63,10 +63,21 @@ function createRoom(hostId, username, maxPlayers = 10) {
     drawNextNumber(playerId) {
       if (this.remainingNumbers.length === 0) return null;
       
+      // Debug info
+      console.log(`Draw attempt by player ${playerId}`);
+      console.log(`Current turn index: ${this.currentTurnIndex}`);
+      console.log(`Current player array:`, this.players.map(p => ({id: p.id, username: p.username})));
+      
       // Verify it's this player's turn
       const playerIndex = this.players.findIndex(player => player.id === playerId);
-      if (playerIndex === -1 || playerIndex !== this.currentTurnIndex) {
-        return { error: "Not your turn to draw" };
+      console.log(`Player index in array: ${playerIndex}`);
+      
+      if (playerIndex === -1) {
+        return { error: "Player not found in this room" };
+      }
+      
+      if (playerIndex !== this.currentTurnIndex) {
+        return { error: `Not your turn to draw. Current turn: ${this.players[this.currentTurnIndex].username}` };
       }
       
       // Draw a number
@@ -76,6 +87,7 @@ function createRoom(hostId, username, maxPlayers = 10) {
       
       // Move to next player's turn
       this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+      console.log(`Next turn index: ${this.currentTurnIndex}`);
       
       return {
         number: drawnNumber,
@@ -157,6 +169,14 @@ function startGame(roomCode, hostId) {
     score: 0,
     bingos: 0
   }));
+  
+  // Double check that we have players and set the first turn correctly
+  if (!room.players || room.players.length === 0) {
+    throw new Error('Cannot start game: No players in the room');
+  }
+  
+  console.log("Starting game with players:", room.players.map(p => ({id: p.id, username: p.username})));
+  console.log("First player's turn:", room.players[0].id, room.players[0].username);
   
   return {
     success: true,

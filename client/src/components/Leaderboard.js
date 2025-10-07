@@ -18,7 +18,7 @@ const Leaderboard = ({ leaderboard }) => {
             <tr key={player.id}>
               <td>{index + 1}</td>
               <td>{player.username}</td>
-              <td>{player.score}</td>
+              <td><span className="score">{player.score}</span></td>
               <td>{player.bingos}</td>
             </tr>
           ))}
