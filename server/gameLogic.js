@@ -57,15 +57,31 @@ function createRoom(hostId, username, maxPlayers = 10) {
     remainingNumbers: Array.from({ length: 49 }, (_, i) => i + 1),
     leaderboard: [],
     claims: [],
+    currentTurnIndex: 0, // Track whose turn it is
     
     // Method to draw the next number
-    drawNextNumber() {
+    drawNextNumber(playerId) {
       if (this.remainingNumbers.length === 0) return null;
       
+      // Verify it's this player's turn
+      const playerIndex = this.players.findIndex(player => player.id === playerId);
+      if (playerIndex === -1 || playerIndex !== this.currentTurnIndex) {
+        return { error: "Not your turn to draw" };
+      }
+      
+      // Draw a number
       const randomIndex = Math.floor(Math.random() * this.remainingNumbers.length);
       const drawnNumber = this.remainingNumbers.splice(randomIndex, 1)[0];
       this.drawnNumbers.push(drawnNumber);
-      return drawnNumber;
+      
+      // Move to next player's turn
+      this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+      
+      return {
+        number: drawnNumber,
+        nextTurn: this.players[this.currentTurnIndex].id,
+        nextTurnUsername: this.players[this.currentTurnIndex].username
+      };
     }
   };
   
@@ -134,6 +150,7 @@ function startGame(roomCode, hostId) {
   // Start the game
   room.gameInProgress = true;
   room.drawnNumbers = [];
+  room.currentTurnIndex = 0; // Start with the first player's turn
   room.leaderboard = room.players.map(player => ({
     id: player.id,
     username: player.username,
@@ -141,7 +158,11 @@ function startGame(roomCode, hostId) {
     bingos: 0
   }));
   
-  return true;
+  return {
+    success: true,
+    firstTurn: room.players[0].id,
+    firstTurnUsername: room.players[0].username
+  };
 }
 
 /**

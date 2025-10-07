@@ -41,21 +41,38 @@ function App() {
     });
     
     // Handle game start
-    socket.on('game_started', () => {
-      console.log('Game started!');
-      setRoomData(prev => ({ ...prev, gameInProgress: true }));
-      showNotification('The game has started!', 'success');
+    socket.on('game_started', ({ currentTurn, currentTurnUsername }) => {
+      console.log('Game started!', 'First turn:', currentTurnUsername);
+      setRoomData(prev => ({ 
+        ...prev, 
+        gameInProgress: true,
+        currentTurn,
+        currentTurnUsername
+      }));
+      
+      if (currentTurn === socket.id) {
+        showNotification('The game has started! It\'s your turn to draw a number!', 'success');
+      } else {
+        showNotification(`The game has started! ${currentTurnUsername}'s turn to draw a number`, 'success');
+      }
     });
     
     // Handle drawn numbers
-    socket.on('number_drawn', ({ number, drawnNumbers }) => {
-      console.log('Number drawn:', number);
+    socket.on('number_drawn', ({ number, drawnNumbers, nextTurn, nextTurnUsername }) => {
+      console.log('Number drawn:', number, 'Next turn:', nextTurnUsername);
       setRoomData(prev => ({ 
         ...prev, 
         drawnNumbers,
-        latestNumber: number
+        latestNumber: number,
+        currentTurn: nextTurn,
+        currentTurnUsername: nextTurnUsername
       }));
-      showNotification(`Number drawn: ${number}`, 'info');
+      
+      if (nextTurn === socket.id) {
+        showNotification(`Number ${number} drawn. It's your turn now!`, 'success');
+      } else {
+        showNotification(`Number ${number} drawn. ${nextTurnUsername}'s turn`, 'info');
+      }
     });
     
     // Handle claim results
@@ -86,6 +103,17 @@ function App() {
         leaderboard: data.leaderboard
       }));
       showNotification(data.message, 'info');
+    });
+    
+    // Handle turn updates (when players disconnect)
+    socket.on('turn_update', ({ currentTurn, currentTurnUsername, reason }) => {
+      console.log('Turn update:', currentTurnUsername, reason);
+      setRoomData(prev => ({
+        ...prev,
+        currentTurn,
+        currentTurnUsername
+      }));
+      showNotification(`${reason}. It's now ${currentTurnUsername}'s turn`, 'info');
     });
     
     // Handle errors
@@ -166,6 +194,12 @@ function App() {
     socket.emit('bingo_claim', { claimType });
   };
   
+  const handleDrawNumber = () => {
+    if (!socket) return;
+    
+    socket.emit('draw_number');
+  };
+  
   const handleLeaveRoom = () => {
     setIsInRoom(false);
     setRoomData(null);
@@ -201,6 +235,7 @@ function App() {
           username={username}
           onStartGame={handleStartGame}
           onBingoClaim={handleBingoClaim}
+          onDrawNumber={handleDrawNumber}
           onLeaveRoom={handleLeaveRoom}
         />
       )}

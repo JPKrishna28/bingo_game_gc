@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import BingoCard from './BingoCard';
 import DrawnNumbers from './DrawnNumbers';
 import Leaderboard from './Leaderboard';
+import { useSocket } from '../contexts/SocketContext';
 
-const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onLeaveRoom }) => {
+const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onDrawNumber, onLeaveRoom }) => {
   const [markedNumbers, setMarkedNumbers] = useState({});
+  const { socket } = useSocket();
   
   // Initialize marked numbers from drawn numbers on room join
   useEffect(() => {
@@ -72,6 +74,26 @@ const GameRoom = ({ roomData, username, onStartGame, onBingoClaim, onLeaveRoom }
       
       {roomData.gameInProgress && (
         <>
+          {/* Turn indicator and number drawing UI */}
+          <div className="turn-indicator">
+            {roomData.currentTurn === socket?.id ? (
+              <div className="your-turn">
+                <h3>It's your turn to draw a number!</h3>
+                <button 
+                  className="btn btn-primary draw-button" 
+                  onClick={onDrawNumber}
+                  disabled={!roomData.remainingNumbers || roomData.remainingNumbers.length === 0}
+                >
+                  Draw Number
+                </button>
+              </div>
+            ) : (
+              <div className="waiting-turn">
+                <h3>Waiting for {roomData.currentTurnUsername} to draw a number...</h3>
+              </div>
+            )}
+          </div>
+          
           {roomData.drawnNumbers && roomData.drawnNumbers.length > 0 && (
             <DrawnNumbers 
               drawnNumbers={roomData.drawnNumbers} 

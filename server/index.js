@@ -121,45 +121,65 @@ io.on('connection', (socket) => {
     
     try {
       // Start the game logic
-      startGame(roomCode, socket.id);
+      const result = startGame(roomCode, socket.id);
       
       // Notify all players in the room that the game has started
-      io.to(roomCode).emit('game_started');
-      console.log(`Game started in room ${roomCode}`);
+      io.to(roomCode).emit('game_started', {
+        currentTurn: result.firstTurn,
+        currentTurnUsername: result.firstTurnUsername
+      });
       
-      // Start drawing numbers (one every 5 seconds)
-      const drawInterval = setInterval(() => {
-        const roomState = getRoomState(roomCode);
-        
-        // Stop drawing if the game is over or room doesn't exist
-        if (!roomState || roomState.gameOver) {
-          clearInterval(drawInterval);
-          return;
-        }
-        
-        // Draw the next number if there are still numbers to draw
-        if (roomState.remainingNumbers.length > 0) {
-          const drawnNumber = roomState.drawNextNumber();
-          
-          // Broadcast the drawn number to all players in the room
-          io.to(roomCode).emit('number_drawn', { 
-            number: drawnNumber, 
-            drawnNumbers: roomState.drawnNumbers 
-          });
-          
-          console.log(`Number ${drawnNumber} drawn in room ${roomCode}`);
-        } else {
-          // All numbers have been drawn
-          roomState.gameOver = true;
-          io.to(roomCode).emit('game_over', {
-            message: 'All numbers have been drawn',
-            leaderboard: roomState.leaderboard
-          });
-          
-          clearInterval(drawInterval);
-          console.log(`Game over in room ${roomCode} - all numbers drawn`);
-        }
-      }, 5000); // Draw a number every 5 seconds
+      console.log(`Game started in room ${roomCode}. First turn: ${result.firstTurnUsername}`);
+    } catch (error) {
+      socket.emit('error', { message: error.message });
+    }
+  });
+  
+  // Handle player drawing a number
+  socket.on('draw_number', () => {
+    const roomCode = userData.roomCode;
+    
+    if (!roomCode) {
+      socket.emit('error', { message: 'You are not in a room' });
+      return;
+    }
+    
+    try {
+      const roomState = getRoomState(roomCode);
+      
+      // Check if the game is in progress
+      if (!roomState || !roomState.gameInProgress) {
+        socket.emit('error', { message: 'Game is not in progress' });
+        return;
+      }
+      
+      // Check if there are still numbers to draw
+      if (roomState.remainingNumbers.length === 0) {
+        roomState.gameOver = true;
+        io.to(roomCode).emit('game_over', {
+          message: 'All numbers have been drawn',
+          leaderboard: roomState.leaderboard
+        });
+        return;
+      }
+      
+      // Draw the next number
+      const result = roomState.drawNextNumber(socket.id);
+      
+      if (result.error) {
+        socket.emit('error', { message: result.error });
+        return;
+      }
+      
+      // Broadcast the drawn number to all players in the room
+      io.to(roomCode).emit('number_drawn', { 
+        number: result.number, 
+        drawnNumbers: roomState.drawnNumbers,
+        nextTurn: result.nextTurn,
+        nextTurnUsername: result.nextTurnUsername
+      });
+      
+      console.log(`Number ${result.number} drawn in room ${roomCode} by ${userData.username}. Next turn: ${result.nextTurnUsername}`);
     } catch (error) {
       socket.emit('error', { message: error.message });
     }
@@ -243,6 +263,22 @@ io.on('connection', (socket) => {
             });
             
             console.log(`New host in room ${roomCode}: ${newHost.username}`);
+          }
+          
+          // If it was this player's turn, move to the next player
+          if (roomState.gameInProgress && roomState.players[roomState.currentTurnIndex].id === socket.id) {
+            // Recalculate current turn after player removal
+            roomState.currentTurnIndex = roomState.currentTurnIndex % updatedPlayers.length;
+            const nextPlayer = updatedPlayers[roomState.currentTurnIndex];
+            
+            // Notify others of turn change
+            if (nextPlayer) {
+              socket.to(roomCode).emit('turn_update', {
+                currentTurn: nextPlayer.id,
+                currentTurnUsername: nextPlayer.username,
+                reason: `${userData.username} disconnected during their turn`
+              });
+            }
           }
           
           // Remove room if empty

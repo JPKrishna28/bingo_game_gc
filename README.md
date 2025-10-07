@@ -50,10 +50,11 @@ A multiplayer Bingo web application that supports up to 10 players per room usin
 1. Enter a username
 2. Create a new room or join an existing one with a room code
 3. Once all players have joined, the room creator (host) can start the game
-4. Numbers from 1-49 will be drawn randomly
-5. Mark the numbers on your Bingo card as they are called
-6. Call "Bingo" when you have a complete row, column, diagonal, or full house
-7. Points are awarded based on who claims Bingo first
+4. Players take turns drawing numbers from 1-49
+5. When it's your turn, click the "Draw Number" button
+6. Mark the numbers on your Bingo card as they are drawn
+7. Call "Bingo" when you have a complete row, column, diagonal, or full house
+8. Points are awarded based on who claims Bingo first
 
 ## Scoring System
 
