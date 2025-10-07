@@ -2,13 +2,13 @@
   "name": "bingo-game-server",
   "version": "1.0.0",
   "description": "Backend server for Bingo Game",
-  "main": "server/index.js",
+  "main": "index.js",
   "engines": {
     "node": ">=14.0.0"
   },
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "nodemon server/index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": ["bingo", "multiplayer", "websocket", "real-time", "server"],
   "author": "",
